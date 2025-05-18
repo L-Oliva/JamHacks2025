@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EcoScan</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Fade-in animation */
+    @keyframes fadeIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+    .fade-in { opacity: 0; animation: fadeIn 1s ease-out forwards; }
+    /* Underline animation */
+    .nav-link { position: relative; font-weight: bold; }
+    .nav-link::after { content: ''; position: absolute; left: 0; bottom: -2px; height: 2px; width: 0; background: currentColor; transition: width 0.3s ease-out; }
+    .nav-link:hover::after { width: 100%; }
+    /* Progress visuals */
+    .progress-circle { transform: rotate(-90deg); }
+    .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
+  </style>
+</head>
+<body class="bg-green-50 min-h-screen flex flex-col">
+  <!-- Navbar -->
+  <header class="bg-green-700 text-white fade-in" style="animation-delay:0.2s;">
+    <nav class="container mx-auto flex items-center justify-between p-4">
+      <div class="text-xl font-bold">EcoScan</div>
+      <ul class="flex space-x-6">
+        <li><a href="#" class="nav-link hover:text-green-200">Home</a></li>
+        <li><a href="#leaderboard" class="nav-link hover:text-green-200">Leaderboard</a></li>
+        <li><a href="#instructions" class="nav-link hover:text-green-200">Instructions</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-grow p-6 fade-in" style="animation-delay:0.4s;">
+    <div class="flex gap-6">
+      <!-- Left: Upload & Preview (3/4 width) -->
+      <section class="w-3/4 bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center text-center">
+        <h1 class="text-2xl font-semibold text-green-800 mb-6">Trash Classification</h1>
+
+        <!-- Preview Area -->
+        <div id="preview-container" class="border-2 border-dashed border-green-300 rounded-lg p-4 mb-6 w-full flex-grow relative">
+            <img id="preview-image" src="" alt="Preview" class="mx-auto max-h-80 max-w-full hidden" />
+            <p id="preview-placeholder" class="text-green-400 m-auto">Upload an image to preview here</p>
+          </div>
+
+        <!-- Upload Button & Spinner -->
+        <div class="flex flex-col items-center mb-6">
+          <input type="file" id="file-input" accept="image/*" class="hidden" />
+          <button id="upload-btn" type="button" class="bg-green-600 text-white px-6 py-2 rounded-full hover:bg-green-700 transition">Choose Image</button>
+          <div id="spinner" class="hidden mt-4">
+            <svg class="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Stats: icon, name, percent with visual circle -->
+        <div id="stats" class="w-full flex justify-around mb-6 hidden">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+<!-- Right: Leaderboard & Instructions (1/4 width) -->
+<aside class="w-1/4 flex flex-col gap-6">
+    <div id="leaderboard" class="bg-white rounded-2xl shadow-lg p-6 flex-grow overflow-auto">
+      <h2 class="text-xl font-bold mb-4 text-green-800">Leaderboard &#127942</h2>
+      <li class="text-xl font-semibold mb-4 text-gray-800">Go to Redeem to get rewards!</li>
+      <li class="text-xl font-semibold mb-4 text-green-600">Your points: 0</li>
+      <li class="text-1x2 font-semibold mb-4 text-green-500">Top 3 Users:</li>
+        <ol class="list-decimal list-inside text-left text-gray-700">
+            <li>User1 - 1000 points</li>
+            <li>User2 - 800 points</li>
+            <li>User3 - 600 points</li>
+      <ol class="list-decimal list-inside text-left text-gray-700"></ol>
+    </div>
+    <div id="instructions" class="bg-white rounded-2xl shadow-lg p-6 flex-grow overflow-auto">
+      <h2 class="text-xl font-semibold mb-4 text-green-800">How to Use</h2>
+      <ul class="list-disc list-inside text-left text-gray-700 space-y-2">
+        <li>Upload a photo of your trash.</li>
+        <li>Stats appear below with information on the type of trash</li>
+        <li>Throw out your items in the right bin!</li>
+        <li>Collect points and redeem! (You get 10 points for every item per scan)</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+</main>
+  <!-- Footer -->
+  <footer class="bg-green-700 text-white text-center p-4 fade-in" style="animation-delay:1.2s;">
+    <p>&copy; 2025 EcoScan. All rights reserved.</p>
+  </footer>
+
+  <div id="app">
+  <!-- All your existing content -->
+  </div>
+
+  <script>
+  // All your JavaScript code here
+  const uploadBtn = document.getElementById('upload-btn');
+  const fileInput = document.getElementById('file-input');
+  const statsContainer = document.getElementById('stats');
+
+  // Prevent default behavior when the button is clicked
+  uploadBtn.addEventListener('click', (event) => {
+    event.preventDefault(); // Prevent any default action
+    fileInput.click(); // Trigger the file input dialog
+  });
+
+  // Prevent default behavior when a file is selected
+  fileInput.addEventListener('change', (event) => {
+    event.preventDefault(); // Prevent any default action
+
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    // Show preview of the uploaded image
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const previewImage = document.getElementById('preview-image');
+      const previewPlaceholder = document.getElementById('preview-placeholder');
+      previewImage.src = e.target.result;
+      previewImage.classList.remove('hidden');
+      previewPlaceholder.classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+
+    // Call the classifyImage function to process the image
+    classifyImage(file);
+  });
+
+  let userPoints = 0; // Initialize user points
+
+  async function classifyImage(file) {
+    // Show spinner while processing
+    spinner.classList.remove('hidden');
+    statsContainer.innerHTML = '';
+    statsContainer.classList.add('hidden');
+
+    console.log('Starting image classification process...');
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    console.log('Image attached to form data:', file.name);
+
+    let data = { predictions: {} };
+    try {
+      console.log('Sending request to Flask API...');
+      const resp = await fetch('http://127.0.0.1:5000/api/classify', { 
+        method: 'POST', 
+        body: formData 
+      });
+      console.log('Response received from API:', resp.status);
+      
+      data = await resp.json();
+      
+      // Enhanced logging of the predictions
+      console.log('---------- MODEL PREDICTIONS ----------');
+      console.log('Raw prediction data:', data);
+      
+      if (data.predictions) {
+        console.log('Individual class predictions:');
+        Object.entries(data.predictions).forEach(([label, score]) => {
+          console.log(`${label}: ${score} (${(score * 100).toFixed(2)}%)`);
+        });
+        
+        // Find highest prediction
+        const highestPred = Object.entries(data.predictions)
+          .reduce((max, current) => current[1] > max[1] ? current : max, ['', 0]);
+        console.log(`Highest prediction: ${highestPred[0]} with ${(highestPred[1] * 100).toFixed(2)}%`);
+
+        // Add 100 points if the highest prediction is NOT "Trash"
+        if (highestPred[0] !== "Trash") {
+          userPoints += 100;
+          updatePointsDisplay();
+        }
+      }
+      console.log('--------------------------------------');
+      
+    } catch (err) {
+      console.error('Error during classification:', err);
+    }
+
+    // Render stats and hide spinner
+    console.log('Rendering stats to UI...');
+    renderStats(data.predictions || {});
+    spinner.classList.add('hidden');
+    console.log('Classification process completed');
+  }
+
+  // Function to update the points display in the leaderboard
+  function updatePointsDisplay() {
+    const pointsElement = document.querySelector('#leaderboard .text-green-600');
+    pointsElement.textContent = `Your points: ${userPoints}`;
+  }
+
+  function renderStats(predictions) {
+    statsContainer.innerHTML = '';
+    const items = [
+      { key: 'Plastic/Cans', icon: '♻️', label: 'Plastic/Cans' },
+      { key: 'Paper', icon: '📄', label: 'Paper' },
+      { key: 'Organic', icon: '🍃', label: 'Organic' },
+      { key: 'Trash', icon: '🗑️', label: 'Trash' },
+    ];
+
+    items.forEach((item) => {
+      const pct = (predictions[item.key] || 0) * 100; // Convert to percentage
+      const size = 80,
+        stroke = 8;
+      const radius = (size - stroke) / 2;
+      const circumference = 2 * Math.PI * radius;
+      const offset = circumference * (1 - pct / 100);
+      const color =
+        pct > 0
+          ? item.key === 'Trash'
+            ? '#dc2626'
+            : item.key === 'Plastic/Cans'
+            ? '#16a34a'
+            : item.key === 'Organic'
+            ? '#ca8a04'
+            : '#3b82f6'
+          : '#ccc';
+
+      statsContainer.innerHTML += `
+        <div class="flex flex-col items-center">
+          <div class="flex items-center space-x-2 mb-1">
+            <span class="text-2xl">${item.icon}</span>
+            <span class="font-medium text-gray-800">${item.label}</span>
+          </div>
+          <div class="relative">
+            <svg width="${size}" height="${size}" class="progress-circle">
+              <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" stroke="#eee" stroke-width="${stroke}" fill="none" />
+              <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" stroke="${color}" stroke-width="${stroke}" fill="none" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" />
+            </svg>
+            <span class="progress-text text-gray-800">${pct.toFixed(2)}%</span>
+          </div>
+        </div>
+      `;
+    });
+
+    statsContainer.classList.remove('hidden');
+  }
+  </script>
+</body>
+</html>
